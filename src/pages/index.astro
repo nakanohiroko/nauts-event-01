@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import MemberCard from '../components/MemberCard.astro';
+import { members } from '../data/members.js';
+---
+<BaseLayout title="Nauts | Member">
+  <Header />
+
+  <main class="container member-section">
+    <div class="member-grid">
+      {members.map((member, index) => (
+        <MemberCard member={member} index={index} />
+      ))}
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .member-section {
+    padding-top: 200px;
+    padding-bottom: 200px;
+  }
+
+  .member-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: 48px;
+    row-gap: 96px;
+  }
+
+  @media (max-width: 1024px) {
+    .member-grid {
+      grid-template-columns: repeat(2, 1fr);
+      row-gap: 72px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .member-section {
+      padding-top: 120px;
+    }
+    .member-grid {
+      grid-template-columns: 1fr;
+      row-gap: 56px;
+    }
+  }
+</style>

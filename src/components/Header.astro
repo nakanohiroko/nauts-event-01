@@ -1,0 +1,70 @@
+---
+---
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="/" class="logo" aria-label="Nauts">
+      <img src="/images/nauts-logo.svg" alt="Nauts" width="141" height="40" />
+    </a>
+
+    <nav class="header-nav" aria-label="Primary">
+      <span class="nav-item is-muted">Home</span>
+      <span class="nav-item is-current" aria-current="page">Member</span>
+    </nav>
+
+    <a href="#contact" class="cta-btn"></a>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    padding-top: 80px;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .logo img {
+    height: 40px;
+    width: auto;
+  }
+
+  .header-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .nav-item.is-muted {
+    color: var(--fg-dim);
+  }
+
+  .nav-item.is-current {
+    color: var(--fg);
+  }
+
+  .cta-btn {
+    background: #ffffff;
+    width: 80px;
+    height: 40px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: opacity 0.2s ease;
+  }
+
+  .cta-btn:hover {
+    opacity: 0.8;
+  }
+
+  @media (max-width: 640px) {
+    .header-nav {
+      display: none;
+    }
+  }
+</style>

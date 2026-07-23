@@ -1,0 +1,279 @@
+---
+const { member, index } = Astro.props;
+const num = String(index + 1).padStart(2, '0');
+---
+<article class="member-card">
+  <div class="photo" data-eat>
+    <div class="creature" style={`--face-x:${member.face.x}%;--face-y:${member.face.y}%;`}>
+      <img src={`/images/members/${member.photo}`} alt={member.name} loading="lazy" />
+      <span class="face-plate" aria-hidden="true"></span>
+      <span class="bump" aria-hidden="true"></span>
+      <span class="sweat" aria-hidden="true"></span>
+      <span class="eyes" aria-hidden="true">
+        <span class="eye"><span class="pupil"></span></span>
+        <span class="eye"><span class="pupil"></span></span>
+      </span>
+      <span class="mouth" aria-hidden="true"></span>
+    </div>
+    <span class="peh" aria-hidden="true">ぺっ</span>
+    <span class="cursor-avatar" aria-hidden="true">
+      <span class="goo"></span>
+      <svg width="15" height="18" viewBox="0 0 14 20" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M0 0 L0 16.5 L4.4 12.8 L7 19 L9.6 17.9 L7 11.9 L12.6 11.9 Z"
+          fill="#fff"
+          stroke="#000"
+          stroke-width="1"></path>
+      </svg>
+    </span>
+    <span class="drip" aria-hidden="true"></span>
+    <span class="drip" aria-hidden="true"></span>
+    <span class="drip" aria-hidden="true"></span>
+    <span class="drip" aria-hidden="true"></span>
+    <span class="drip" aria-hidden="true"></span>
+    <span class="drip" aria-hidden="true"></span>
+  </div>
+  <div class="info">
+    <div class="text">
+      <p class="company">{member.company}</p>
+      <p class="name">
+        {member.name.split(' ').map((part) => <>{part}<br /></>)}
+      </p>
+    </div>
+    <ul class="roles">
+      {member.roles.map((role) => <li>{role}</li>)}
+    </ul>
+  </div>
+</article>
+
+<style>
+  .member-card {
+    position: relative;
+    display: flex;
+    gap: 40px;
+  }
+
+  .photo {
+    position: relative;
+    flex-shrink: 0;
+    width: 136px;
+    height: 170px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #000;
+    cursor: none;
+    touch-action: none;
+  }
+
+  .creature {
+    position: absolute;
+    inset: 0;
+    will-change: transform;
+  }
+
+  .creature img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .face-plate {
+    position: absolute;
+    left: var(--face-x, 50%);
+    top: calc(var(--face-y, 45%) + 3%);
+    width: 50%;
+    height: 30%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 75%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+
+  .eyes {
+    position: absolute;
+    left: var(--face-x, 50%);
+    top: var(--face-y, 45%);
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 10.4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+
+  .eye {
+    width: 8.8px;
+    height: 8.8px;
+    border-radius: 50%;
+    background: #f4f3ef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, height 0.15s, border-radius 0.15s;
+  }
+
+  .eye.is-happy {
+    background: transparent;
+    border-bottom: 1.6px solid #f4f3ef;
+    height: 4.8px;
+    border-radius: 0 0 8px 8px;
+  }
+
+  .pupil {
+    width: 3.6px;
+    height: 3.6px;
+    border-radius: 50%;
+    background: #15140f;
+  }
+
+  .mouth {
+    position: absolute;
+    left: var(--face-x, 50%);
+    top: calc(var(--face-y, 45%) + 9%);
+    width: 16px;
+    height: 2.4px;
+    background: #15140f;
+    border-radius: 2.4px 2.4px 10px 10px;
+    transform: translate(-50%, 0);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+
+  .photo.is-awake .face-plate,
+  .photo.is-awake .eyes,
+  .photo.is-awake .mouth {
+    opacity: 1;
+  }
+
+  .bump {
+    position: absolute;
+    left: var(--face-x, 50%);
+    top: calc(var(--face-y, 45%) + 9%);
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 72%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .sweat {
+    position: absolute;
+    left: calc(var(--face-x, 50%) + 13%);
+    top: calc(var(--face-y, 45%) - 14%);
+    width: 6px;
+    height: 9px;
+    background: #8fd1ff;
+    border-radius: 50% 50% 50% 50% / 35% 35% 65% 65%;
+    opacity: 0;
+    transition: opacity 0.25s;
+    animation: sweatfall 0.9s ease-in infinite;
+    pointer-events: none;
+  }
+
+  @keyframes sweatfall {
+    0% {
+      transform: translateY(0);
+    }
+    70% {
+      transform: translateY(6px);
+    }
+    100% {
+      transform: translateY(7px);
+      opacity: 0;
+    }
+  }
+
+  .peh {
+    position: absolute;
+    left: 50%;
+    top: 38%;
+    transform: translate(-50%, 0);
+    opacity: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .cursor-avatar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    pointer-events: none;
+    will-change: transform;
+    transform-origin: 0 0;
+    z-index: 6;
+  }
+
+  .goo {
+    position: absolute;
+    left: -4px;
+    top: -3px;
+    width: 18px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(143, 209, 96, 0.55);
+    transform: scale(0);
+  }
+
+  .drip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 5px;
+    height: 6px;
+    border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+    background: #8fd160;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .company {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  .name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 48px;
+  }
+
+  .roles {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 9px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.2;
+  }
+
+  @media (max-width: 640px) {
+    .member-card {
+      gap: 24px;
+    }
+    .photo {
+      width: 104px;
+      height: 130px;
+    }
+  }
+</style>

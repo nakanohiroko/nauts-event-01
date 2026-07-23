@@ -1,0 +1,150 @@
+---
+const primaryLinks = ['About', 'Projects', 'Member', 'Contact'];
+const socialLinks = ['X', 'Instagram', 'Note', 'Privacy Policy'];
+---
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-meta">
+      <p class="tagline">Design Collective</p>
+      <div class="clock">
+        <span id="footer-date">Jan.1,2026</span>
+        <span id="footer-time">00:00:00</span>
+      </div>
+    </div>
+
+    <div class="footer-nav-block">
+      <nav class="footer-nav" aria-label="Footer">
+        {primaryLinks.map((label) => (
+          <a href={label === 'Contact' ? '#contact' : '#'}>{label}</a>
+        ))}
+      </nav>
+      <nav class="footer-nav" aria-label="Social">
+        {socialLinks.map((label) => (
+          <a href="#">{label}</a>
+        ))}
+      </nav>
+      <p class="copyright">© nauts</p>
+    </div>
+
+    <img class="footer-mark" src="/images/footer-vector.svg" alt="" aria-hidden="true" />
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: 160px;
+    padding-bottom: 56px;
+  }
+
+  .footer-inner {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 32px;
+    overflow: hidden;
+    padding-top: 48px;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .tagline {
+    margin: 0;
+    color: var(--fg);
+  }
+
+  .clock {
+    display: flex;
+    gap: 24px;
+    color: var(--fg-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .footer-nav-block {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .footer-nav {
+    display: flex;
+    gap: 24px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .footer-nav a {
+    transition: opacity 0.2s ease;
+  }
+
+  .footer-nav a:hover {
+    opacity: 0.6;
+  }
+
+  .copyright {
+    margin: 8px 0 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--fg-dim);
+  }
+
+  .footer-mark {
+    position: absolute;
+    right: 0;
+    bottom: -12px;
+    width: clamp(220px, 32vw, 472px);
+    height: auto;
+    opacity: 0.9;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  @media (max-width: 900px) {
+    .footer-inner {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .footer-nav-block {
+      align-items: flex-start;
+    }
+    .footer-nav {
+      flex-wrap: wrap;
+    }
+    .footer-mark {
+      position: static;
+      margin-top: 32px;
+      width: 60vw;
+    }
+  }
+</style>
+
+<script>
+  const dateEl = document.getElementById('footer-date');
+  const timeEl = document.getElementById('footer-time');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function pad(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function tick() {
+    const now = new Date();
+    if (dateEl) {
+      dateEl.textContent = `${months[now.getMonth()]}.${now.getDate()},${now.getFullYear()}`;
+    }
+    if (timeEl) {
+      timeEl.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    }
+  }
+
+  tick();
+  setInterval(tick, 1000);
+</script>

@@ -1,0 +1,427 @@
+---
+import '../styles/global.css';
+
+const { title = 'Nauts | Member' } = Astro.props;
+---
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <slot />
+    <button id="sound-toggle" type="button" aria-label="サウンド切り替え">🔊</button>
+    <script>
+      (function () {
+        'use strict';
+
+        var RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // ---- shared audio -----------------------------------------------
+        var AC = null,
+          NB = null,
+          soundOn = true;
+        var soundBtn = document.getElementById('sound-toggle');
+
+        function ensureAudio() {
+          if (!AC) {
+            try {
+              AC = new (window.AudioContext || window.webkitAudioContext)();
+              NB = AC.createBuffer(1, Math.floor(AC.sampleRate * 0.3), AC.sampleRate);
+              var d = NB.getChannelData(0);
+              for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            } catch (e) {}
+          }
+          if (AC && AC.state === 'suspended') AC.resume();
+        }
+
+        function tone(type, f0, f1, dur, vol) {
+          if (!AC || !soundOn) return;
+          var t = AC.currentTime;
+          var o = AC.createOscillator();
+          o.type = type;
+          o.frequency.setValueAtTime(f0, t);
+          o.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t + dur);
+          var g = AC.createGain();
+          g.gain.setValueAtTime(vol, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          o.connect(g);
+          g.connect(AC.destination);
+          o.start(t);
+          o.stop(t + dur + 0.02);
+        }
+
+        function noiseS(fType, freq, dur, vol) {
+          if (!AC || !soundOn || !NB) return;
+          var t = AC.currentTime;
+          var s = AC.createBufferSource();
+          s.buffer = NB;
+          var f = AC.createBiquadFilter();
+          f.type = fType;
+          f.frequency.value = freq;
+          var g = AC.createGain();
+          g.gain.setValueAtTime(vol, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          s.connect(f);
+          f.connect(g);
+          g.connect(AC.destination);
+          s.start(t);
+          s.stop(t + dur + 0.02);
+        }
+
+        function sMunch() {
+          noiseS('lowpass', 700, 0.09, 0.5);
+          tone('sine', 150, 70, 0.08, 0.22);
+        }
+        function sGulp() {
+          tone('sine', 330, 70, 0.22, 0.28);
+        }
+        function sGrowl() {
+          tone('sawtooth', 68, 45, 0.3, 0.1);
+        }
+        function sSpit() {
+          noiseS('highpass', 1200, 0.06, 0.4);
+          tone('square', 300, 900, 0.07, 0.07);
+        }
+
+        document.addEventListener('pointerdown', ensureAudio, { once: false });
+        if (soundBtn) {
+          soundBtn.addEventListener('click', function () {
+            soundOn = !soundOn;
+            soundBtn.textContent = soundOn ? '🔊' : '🔇';
+          });
+        }
+
+        // ---- per-card creature state -------------------------------------
+        function createEater(stage) {
+          var creature = stage.querySelector('.creature');
+          var eyes = [].slice.call(stage.querySelectorAll('.eye'));
+          var pups = [].slice.call(stage.querySelectorAll('.pupil'));
+          var mouth = stage.querySelector('.mouth');
+          var bump = stage.querySelector('.bump');
+          var sweat = stage.querySelector('.sweat');
+          var cur = stage.querySelector('.cursor-avatar');
+          var goo = stage.querySelector('.goo');
+          var peh = stage.querySelector('.peh');
+          var drips = [].slice.call(stage.querySelectorAll('.drip')).map(function (el) {
+            return { el: el, live: false, x: 0, y: 0, v: 0, a: 0 };
+          });
+
+          var mx = 0,
+            my = 0,
+            inside = false;
+          var curX = 0,
+            curY = 0;
+          var state = 'idle';
+          var ox = 0,
+            oy = 0,
+            sy = 1,
+            vy = 0,
+            rot = 0,
+            openT = 0;
+          var resistT = 0,
+            giveT0 = 0,
+            chewT0 = 0,
+            chewN = 0,
+            count = 0;
+          var anim = null,
+            bx = 0,
+            by = 0;
+          var stickyUntil = 0,
+            lastDrip = 0;
+          var curFace = '';
+
+          function spawnDrop(x, y) {
+            for (var i = 0; i < drips.length; i++) {
+              var d = drips[i];
+              if (!d.live) {
+                d.live = true;
+                d.x = x + (Math.random() * 8 - 4);
+                d.y = y + 4;
+                d.v = 0.3 + Math.random() * 0.6;
+                d.a = 0.9;
+                return;
+              }
+            }
+          }
+          function stepDrops() {
+            for (var i = 0; i < drips.length; i++) {
+              var d = drips[i];
+              if (!d.live) continue;
+              d.y += d.v;
+              d.v += 0.06;
+              d.a -= 0.03;
+              if (d.a <= 0) {
+                d.live = false;
+                d.el.style.opacity = '0';
+                continue;
+              }
+              d.el.style.opacity = String(d.a);
+              d.el.style.transform = 'translate(' + d.x + 'px,' + d.y + 'px)';
+            }
+          }
+
+          stage.addEventListener('pointermove', function (e) {
+            var r = stage.getBoundingClientRect();
+            mx = e.clientX - r.left;
+            my = e.clientY - r.top;
+            if (!inside) {
+              curX = mx;
+              curY = my;
+            }
+            inside = true;
+            if (state === 'idle' || state === 'givein') cur.style.opacity = '1';
+          });
+          stage.addEventListener('pointerleave', function () {
+            inside = false;
+            if (state === 'idle' || state === 'givein') {
+              cur.style.opacity = '0';
+              if (state === 'givein') {
+                state = 'idle';
+                resistT = 0;
+              }
+            }
+          });
+          stage.addEventListener('click', function () {
+            if (state === 'full') spit();
+          });
+
+          function setFace(mode) {
+            if (mode === curFace) return;
+            curFace = mode;
+            eyes.forEach(function (el, i) {
+              if (mode === 'happy') {
+                el.classList.add('is-happy');
+                pups[i].style.opacity = '0';
+              } else {
+                el.classList.remove('is-happy');
+                pups[i].style.opacity = '1';
+              }
+            });
+            sweat.style.opacity = mode === 'worried' ? '1' : '0';
+          }
+
+          function startEat() {
+            state = 'eating';
+            anim = { t0: performance.now(), dur: 260, x0: curX, y0: curY };
+          }
+
+          function spit() {
+            state = 'spitting';
+            setFace('normal');
+            bump.style.opacity = '0';
+            vy -= 0.24;
+            cur.style.opacity = '1';
+            sSpit();
+            anim = { t0: performance.now(), dur: 320 };
+            var W = stage.clientWidth,
+              H = stage.clientHeight;
+            var cx2 = W / 2 + ox,
+              cy2 = H / 2 + oy;
+            peh.style.left = cx2 + 'px';
+            peh.style.top = cy2 - 24 + 'px';
+            peh.animate(
+              [
+                { opacity: 1, transform: 'translate(-50%,0)' },
+                { opacity: 0, transform: 'translate(-50%,-28px)' },
+              ],
+              { duration: 600, easing: 'ease-out' }
+            );
+          }
+
+          function update(now) {
+            var W = stage.clientWidth,
+              H = stage.clientHeight,
+              cx = W / 2,
+              cy = H / 2;
+            var minWH = Math.min(W, H);
+            var PROX = minWH * 0.62;
+            var REP = minWH * 0.14;
+            var PULL = minWH * 0.34;
+            var EATR = minWH * 0.17;
+            var bcx = cx + ox,
+              bcy = cy + oy;
+
+            var stickyR = Math.max(0, (stickyUntil - now) / 2200);
+            if (state === 'idle' || state === 'givein') {
+              var k = 1 - 0.94 * stickyR;
+              curX += (mx - curX) * k;
+              curY += (my - curY) * k;
+              cur.style.transform = 'translate(' + curX + 'px,' + curY + 'px)';
+              goo.style.transform = 'scale(' + stickyR + ')';
+              if (stickyR > 0) {
+                var sp = Math.hypot(mx - curX, my - curY);
+                if (now - lastDrip > 100 && sp > 2) {
+                  lastDrip = now;
+                  spawnDrop(curX, curY);
+                }
+              }
+            }
+
+            var dx = curX - bcx,
+              dy = curY - bcy,
+              dist = Math.hypot(dx, dy) || 1;
+
+            vy += (1 - sy) * 0.22;
+            vy *= 0.76;
+            sy += vy;
+            var g = 1 + Math.min(count, 6) * 0.02;
+            var sx = 1 + (1 - sy) * 0.8;
+            rot *= 0.85;
+
+            var face = 'normal';
+            if (state === 'idle') {
+              if (inside && dist < PROX) {
+                resistT += 1 / 60;
+                face = 'worried';
+                var amp = RM ? 0.3 : 1;
+                var rep = (1 - dist / PROX) * REP * amp;
+                var shx = Math.sin(now * 0.05) * Math.min(minWH * 0.05, resistT * 6) * amp;
+                ox += ((-dx / dist) * rep + shx - ox) * 0.16;
+                oy += ((-dy / dist) * rep - oy) * 0.16;
+                openT += (0 - openT) * 0.25;
+                if (resistT > 0.9) {
+                  state = 'givein';
+                  giveT0 = now;
+                  sGrowl();
+                }
+              } else {
+                resistT = Math.max(0, resistT - 1 / 42);
+                ox *= 0.9;
+                oy *= 0.9;
+                openT *= 0.9;
+              }
+            } else if (state === 'givein') {
+              face = 'hungry';
+              var pull = Math.min(PULL, dist * 0.65);
+              ox += ((dx / dist) * pull - ox) * 0.22;
+              oy += ((dy / dist) * pull - oy) * 0.22;
+              openT += (1 - openT) * 0.25;
+              if (dist < EATR) startEat();
+              if (now - giveT0 > 5000 && dist > PROX * 1.5) {
+                state = 'idle';
+                resistT = 0;
+              }
+            } else if (state === 'eating') {
+              face = 'hungry';
+              openT = Math.min(1, openT + 0.2);
+              var t = Math.min(1, (now - anim.t0) / anim.dur),
+                e = t * t;
+              var px = anim.x0 + (bcx - anim.x0) * e,
+                py = anim.y0 + (bcy + 8 - anim.y0) * e;
+              cur.style.transform =
+                'translate(' + px + 'px,' + py + 'px) rotate(' + e * 150 + 'deg) scale(' + (1 - 0.82 * e) + ')';
+              if (t >= 1) {
+                cur.style.opacity = '0';
+                state = 'chew';
+                chewT0 = now;
+                chewN = 0;
+                vy -= 0.16;
+              }
+            } else if (state === 'chew') {
+              face = 'happy';
+              var ph = (now - chewT0) / 150;
+              openT = Math.abs(Math.sin(ph * Math.PI)) * 0.65;
+              rot = Math.sin(ph * Math.PI * 2) * (RM ? 1 : 3);
+              if (ph >= chewN && chewN < 3) {
+                sMunch();
+                chewN++;
+              }
+              if (ph >= 3) {
+                sGulp();
+                vy -= 0.28;
+                count++;
+                bump.style.opacity = '1';
+                bx = 0;
+                by = 0;
+                openT = 0;
+                state = 'full';
+              }
+            } else if (state === 'full') {
+              face = 'happy';
+              openT += (0 - openT) * 0.25;
+              var fdx = mx - bcx,
+                fdy = my - bcy,
+                fd = Math.hypot(fdx, fdy) || 1;
+              var len = (Math.min(fd, minWH) / minWH) * (minWH * 0.16);
+              bx += ((fdx / fd) * len - bx) * 0.12;
+              by += ((fdy / fd) * len - by) * 0.12;
+              bump.style.transform = 'translate(-50%,-50%) translate(' + bx + 'px,' + by + 'px)';
+              ox += (bx * 0.45 - ox) * 0.08;
+              oy += (by * 0.45 - oy) * 0.08;
+            } else if (state === 'spitting') {
+              face = 'normal';
+              openT = Math.min(1, openT + 0.2);
+              var t2 = Math.min(1, (now - anim.t0) / anim.dur);
+              var c1 = 1.70158,
+                c3 = c1 + 1;
+              var e2 = 1 + c3 * Math.pow(t2 - 1, 3) + c1 * Math.pow(t2 - 1, 2);
+              var sxp = bcx,
+                syp = bcy + 8;
+              var px2 = sxp + (mx - sxp) * e2,
+                py2 = syp + (my - syp) * e2;
+              cur.style.transform =
+                'translate(' + px2 + 'px,' + py2 + 'px) rotate(' + (1 - t2) * -160 + 'deg) scale(' + (0.2 + 0.8 * Math.min(1, t2 * 1.6)) + ')';
+              if (t2 >= 1) {
+                state = 'idle';
+                resistT = 0;
+                curX = px2;
+                curY = py2;
+                stickyUntil = now + 2200;
+                lastDrip = now;
+                spawnDrop(px2, py2);
+                spawnDrop(px2, py2);
+              }
+            }
+            setFace(face);
+
+            creature.style.transform =
+              'translate(' + ox + 'px,' + oy + 'px) rotate(' + rot + 'deg) scale(' + sx * g + ',' + sy * g + ')';
+            mouth.style.height = 2.4 + 12.8 * openT + 'px';
+            mouth.style.width = (curFace === 'worried' ? 12.8 : 17.6 + 8 * openT) + 'px';
+            mouth.style.transform =
+              'translate(-50%,0)' +
+              (curFace === 'worried' ? ' translateX(' + Math.sin(now * 0.03) * 1.2 + 'px)' : '');
+
+            if (curFace === 'normal') {
+              pups.forEach(function (p) {
+                p.style.transform = 'translate(' + (dx / dist) * 2 + 'px,' + (dy / dist) * 2 + 'px)';
+              });
+            } else if (curFace === 'worried') {
+              pups.forEach(function (p) {
+                p.style.transform = 'translate(' + (-dx / dist) * 2.4 + 'px,' + (-dy / dist) * 2.4 + 'px) scale(0.75)';
+              });
+            } else if (curFace === 'hungry') {
+              pups.forEach(function (p) {
+                p.style.transform = 'translate(' + (dx / dist) * 2.6 + 'px,' + (dy / dist) * 2.6 + 'px) scale(1.25)';
+              });
+            }
+
+            stage.classList.toggle('is-awake', inside || state !== 'idle');
+
+            stepDrops();
+          }
+
+          return { update: update };
+        }
+
+        function boot() {
+          var eaters = [].slice.call(document.querySelectorAll('.photo[data-eat]')).map(createEater);
+          function loop(now) {
+            for (var i = 0; i < eaters.length; i++) eaters[i].update(now);
+            requestAnimationFrame(loop);
+          }
+          requestAnimationFrame(loop);
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', boot);
+        } else {
+          boot();
+        }
+      })();
+    </script>
+  </body>
+</html>
